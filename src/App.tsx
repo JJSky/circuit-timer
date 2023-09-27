@@ -25,6 +25,8 @@ import './theme/variables.css';
 import SettingsPage from './pages/SettingsPage';
 import { createContext, useEffect, useState } from 'react';
 import { Storage } from '@ionic/storage';
+import { getUserSettings } from './shared/utils/storage';
+import { toggleDarkTheme } from './shared/utils/utils';
 
 setupIonicReact();
 
@@ -32,15 +34,31 @@ export const StorageContext = createContext<Storage | null>(null);
 
 const App: React.FC = () => {
   const [storage, setStorage] = useState<Storage | null>(null);
-
+  
   useEffect(() => {
-    const initStorage = async () => {
-      const store = new Storage();
-      await store.create();
-      setStorage(store);
-    }
     initStorage();
   }, [])
+
+  useEffect(() => {
+    if (!storage) return;
+    initUserSettings(storage);
+  }, [storage])
+
+  const initStorage = async () => {
+    const store = new Storage();
+    await store.create();
+    setStorage(store);
+  }
+
+  const initUserSettings = async (storage: Storage) => {
+    const storedSettings = await getUserSettings(storage);
+
+    // Use matchMedia to check the user preference
+    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+
+    // Set Dark Mode - prioritize app settings over system settings
+    toggleDarkTheme(storedSettings ? storedSettings.darkMode : systemPrefersDark.matches);
+  }
   
   return (
     <StorageContext.Provider value={storage}>
